@@ -1,13 +1,13 @@
-
 import React, { useState, useCallback } from 'react';
 import { getRelatedWords, generateCartoonImage } from './services/geminiService';
 import type { WordData, ImageData } from './types';
-import { CardType } from './types';
+import { CardType, IndianLanguage } from './types';
 import ImageCard from './components/ImageCard';
 import { RefreshIcon, SparklesIcon } from './components/IconComponents';
 
 const App: React.FC = () => {
   const [inputWord, setInputWord] = useState<string>('');
+  const [selectedLanguage, setSelectedLanguage] = useState<IndianLanguage>(IndianLanguage.Marathi);
   const [words, setWords] = useState<WordData | null>(null);
   const [images, setImages] = useState<ImageData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -23,14 +23,16 @@ const App: React.FC = () => {
         generateCartoonImage(currentWords.original),
         generateCartoonImage(currentWords.opposite),
         generateCartoonImage(currentWords.similar),
+        generateCartoonImage(currentWords.genZ),
       ];
       
-      const [originalImg, oppositeImg, similarImg] = await Promise.all(imagePromises);
+      const [originalImg, oppositeImg, similarImg, genZImg] = await Promise.all(imagePromises);
       
       setImages({
         original: originalImg,
         opposite: oppositeImg,
         similar: similarImg,
+        genZ: genZImg,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'An unknown error occurred while generating images.');
@@ -50,7 +52,7 @@ const App: React.FC = () => {
     setImages(null);
 
     try {
-      const relatedWords = await getRelatedWords(inputWord);
+      const relatedWords = await getRelatedWords(inputWord, selectedLanguage);
       const newWords: WordData = {
         original: inputWord.trim().toLowerCase(),
         ...relatedWords
@@ -79,13 +81,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans flex flex-col items-center p-4 sm:p-6 lg:p-8">
-      <div className="w-full max-w-5xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-indigo-500">
             AI Word Visualizer
           </h1>
           <p className="mt-2 text-lg text-gray-400">
-            Turn words into cartoon art. Discover opposites and synonyms visually.
+            Turn words into cartoon art. Discover opposites, synonyms, and translations visually.
           </p>
         </header>
 
@@ -100,6 +102,16 @@ const App: React.FC = () => {
                 className="flex-grow bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-cyan-500 focus:outline-none transition-all"
                 disabled={isLoading}
               />
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value as IndianLanguage)}
+                className="bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none transition-all"
+                disabled={isLoading}
+              >
+                {Object.values(IndianLanguage).map((lang) => (
+                    <option key={lang} value={lang}>{lang}</option>
+                ))}
+              </select>
               <button
                 type="submit"
                 disabled={isLoading || !inputWord.trim()}
@@ -135,10 +147,11 @@ const App: React.FC = () => {
 
           <div className="mt-8">
             {(isGeneratingWords || isGeneratingAll) && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 <ImageCard title={CardType.Original} word={null} imageUrl={null} isLoading={true} />
                 <ImageCard title={CardType.Opposite} word={null} imageUrl={null} isLoading={true} />
                 <ImageCard title={CardType.Similar} word={null} imageUrl={null} isLoading={true} />
+                <ImageCard title={CardType.GenZ} word={null} imageUrl={null} isLoading={true} />
               </div>
             )}
 
@@ -154,7 +167,14 @@ const App: React.FC = () => {
                     {isGeneratingImages ? 'Regenerating...' : 'Regenerate Images'}
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                
+                <div className="mb-8 p-6 bg-gray-800 border border-gray-700 rounded-2xl max-w-lg mx-auto text-center shadow-lg transition-all duration-300 hover:shadow-indigo-500/20 hover:border-indigo-500/50">
+                    <h4 className="text-lg font-semibold text-indigo-400">{selectedLanguage} Translation</h4>
+                    <p className="text-4xl font-bold text-white mt-2">{words.translation}</p>
+                    <p className="text-gray-400 mt-1 text-lg">({words.pronunciation})</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                   <ImageCard 
                     title={CardType.Original} 
                     word={words.original} 
@@ -171,6 +191,12 @@ const App: React.FC = () => {
                     title={CardType.Similar} 
                     word={words.similar} 
                     imageUrl={images?.similar || null} 
+                    isLoading={isGeneratingImages} 
+                  />
+                  <ImageCard 
+                    title={CardType.GenZ} 
+                    word={words.genZ} 
+                    imageUrl={images?.genZ || null} 
                     isLoading={isGeneratingImages} 
                   />
                 </div>

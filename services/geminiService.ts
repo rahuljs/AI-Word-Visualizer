@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
 if (!process.env.API_KEY) {
@@ -10,13 +9,16 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 interface RelatedWordsResponse {
     opposite: string;
     similar: string;
+    genZ: string;
+    translation: string;
+    pronunciation: string;
 }
 
-export const getRelatedWords = async (word: string): Promise<RelatedWordsResponse> => {
+export const getRelatedWords = async (word: string, language: string): Promise<RelatedWordsResponse> => {
     try {
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: `For the word "${word}", provide a single common opposite word (antonym) and a single common similar word (synonym).`,
+            contents: `For the word "${word}", provide a single common opposite word (antonym), a single common similar word (synonym), a modern Gen-Z slang equivalent, its translation in the ${language} language, and a simple phonetic pronunciation of the ${language} word.`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: {
@@ -30,8 +32,20 @@ export const getRelatedWords = async (word: string): Promise<RelatedWordsRespons
                             type: Type.STRING,
                             description: 'A single common word that is similar to the input word.'
                         },
+                        genZ: {
+                            type: Type.STRING,
+                            description: 'A modern Gen-Z slang word or phrase equivalent to the input word.'
+                        },
+                        translation: {
+                            type: Type.STRING,
+                            description: `The translation of the input word in ${language} script.`
+                        },
+                        pronunciation: {
+                            type: Type.STRING,
+                            description: `A simple, romanized phonetic pronunciation of the ${language} translation.`
+                        }
                     },
-                    required: ["opposite", "similar"],
+                    required: ["opposite", "similar", "genZ", "translation", "pronunciation"],
                 },
             },
         });
