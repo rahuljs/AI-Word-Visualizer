@@ -1,0 +1,5 @@
+{
+  "name": "AI Word Visualizer",
+  "description": "An AI-powered web app that takes a word and generates cartoon-style images for the word itself, its opposite, and a similar word. It's a fun way to explore language visually.",
+  "requestFramePermissions": []
+}
